@@ -36,7 +36,7 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);font-
 .wrap{max-width:560px;width:100%;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 
 /* hero */
-.hero{background:linear-gradient(135deg,var(--b1) 0%,var(--b2) 55%,var(--b3) 100%);color:var(--hero-fg);padding-block:30px 86px;position:relative;overflow:hidden}
+.hero{background:linear-gradient(135deg,var(--b1) 0%,var(--b2) 55%,var(--b3) 100%);color:var(--hero-fg);padding-top:calc(28px + env(safe-area-inset-top,0px));padding-bottom:84px;position:relative;overflow:hidden}
 .hero::before{content:"";position:absolute;width:420px;height:420px;border-radius:50%;background:rgba(255,255,255,.08);top:-220px;right:-140px}
 .hero::after{content:"";position:absolute;width:260px;height:260px;border-radius:50%;background:rgba(255,255,255,.06);bottom:-160px;left:-80px}
 .hero .wrap{position:relative;display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
@@ -58,9 +58,9 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);font-
 .card{background:var(--card);border-radius:22px;padding:22px;display:flex;flex-direction:column;gap:14px;box-shadow:0 10px 30px rgba(10,40,90,.10),0 1px 0 var(--line)}
 .lbl{font-size:14px;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase}
 .inputrow{position:relative}
-input.pn{width:100%;font:inherit;font-family:var(--mono);font-size:34px;font-weight:700;letter-spacing:.05em;padding:18px 60px 18px 18px;border-radius:16px;border:2px solid var(--line);background:var(--soft);color:var(--fg);outline:none;font-variant-numeric:tabular-nums}
+input.pn{width:100%;font:inherit;font-family:var(--mono);font-size:30px;line-height:1.2;font-weight:700;letter-spacing:.05em;padding:16px 56px 16px 18px;border-radius:16px;border:2px solid var(--line);background:var(--soft);color:var(--fg);outline:none;font-variant-numeric:tabular-nums}
 input.pn:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(10,111,214,.15)}
-input.pn::placeholder{color:var(--muted);font-family:var(--font);font-size:22px;font-weight:400;letter-spacing:0;opacity:.7}
+input.pn::placeholder{color:var(--muted);font-family:var(--font);font-size:20px;font-weight:400;letter-spacing:0;opacity:.7}
 .hint{font-size:15px;color:var(--muted);margin:-4px 2px 0}
 .clear{position:absolute;right:12px;top:50%;transform:translateY(-50%);width:40px;height:40px;border-radius:50%;border:0;background:var(--line);color:var(--muted);font-size:22px;line-height:1;display:none;align-items:center;justify-content:center}
 .clear.on{display:flex}
@@ -76,7 +76,7 @@ input.pn::placeholder{color:var(--muted);font-family:var(--font);font-size:22px;
 .chip.x{font-family:var(--font);font-weight:500;color:var(--muted);font-size:15px}
 
 /* result */
-.topbar{display:flex;align-items:center;gap:14px;padding-block:14px}
+.topbar{display:flex;align-items:center;gap:14px;padding-block:16px 18px}
 .topbar .pnbig{font-family:var(--mono);font-size:30px;font-weight:800;letter-spacing:.05em;margin:0;flex:1;min-width:0;overflow-wrap:anywhere}
 .topbar .tag{font-size:12px;letter-spacing:.2em;opacity:.8;font-weight:700}
 .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
@@ -94,7 +94,7 @@ input.txt:focus{border-color:var(--accent)}
 .row2{display:flex;gap:10px}
 .row2 .btn{min-height:52px;font-size:17px}
 
-footer{margin-top:auto;text-align:center;color:var(--muted);font-size:13px;padding-block:14px calc(18px + env(safe-area-inset-bottom,0px));letter-spacing:.02em;display:flex;align-items:center;justify-content:center;gap:10px}
+footer{margin-top:auto;text-align:center;color:var(--muted);font-size:13px;padding-block:24px calc(20px + env(safe-area-inset-bottom,0px));letter-spacing:.02em;display:flex;align-items:center;justify-content:center;gap:10px}
 footer b{color:var(--fg);font-weight:700}
 .gear{border:0;background:transparent;color:var(--muted);font-size:16px;padding:6px;cursor:pointer;opacity:.6}
 .toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:12px 18px;border-radius:999px;font-size:16px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .2s;max-width:90vw;text-align:center}
@@ -142,7 +142,7 @@ footer b{color:var(--fg);font-weight:700}
 
 <!-- RESULT -->
 <div class="screen" id="result" hidden>
-  <div class="hero" style="padding-block:0"><div class="wrap topbar">
+  <div class="hero" style="padding-top:env(safe-area-inset-top,0px);padding-bottom:0"><div class="wrap topbar">
     <div><div class="tag">PART NO.</div><p class="pnbig" id="rpn">55495381</p></div>
   </div></div>
   <div class="wrap stack" style="margin-top:0;padding-top:16px">
