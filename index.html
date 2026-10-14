@@ -86,6 +86,16 @@ input.pn::placeholder{color:var(--muted);font-family:var(--font);font-size:20px;
 .spin{width:34px;height:34px;border-radius:50%;border:4px solid var(--line);border-top-color:var(--accent);animation:sp 1s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
 .more{display:flex;flex-direction:column;gap:10px}
+.tile{border:0;padding:0;cursor:pointer;position:relative}
+.tile .src{position:absolute;left:0;right:0;bottom:0;padding:4px 8px;font-size:11px;color:#fff;background:linear-gradient(to top,rgba(0,0,0,.55),transparent);text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.credit{font-size:12px;color:var(--muted);text-align:center;margin:4px 0 0}
+#gcse{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.lb{position:fixed;inset:0;background:rgba(0,0,0,.92);display:flex;flex-direction:column;z-index:50;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.lb img{flex:1;min-height:0;width:100%;object-fit:contain}
+.lb .bar{display:flex;gap:10px;padding:12px max(16px,env(safe-area-inset-left,0px)) 14px max(16px,env(safe-area-inset-right,0px))}
+.lb .bar .btn{min-height:54px;font-size:18px}
+.lb .bar .btn.close{background:#fff;color:#111;box-shadow:none}
+.lb .bar .btn.open{background:rgba(255,255,255,.14);color:#fff;box-shadow:none;font-weight:600}
 .sticky{position:sticky;bottom:0;padding-block:12px calc(14px + env(safe-area-inset-bottom,0px));background:linear-gradient(to top,var(--bg) 70%,transparent)}
 
 /* settings */
@@ -148,30 +158,48 @@ footer b{color:var(--fg);font-weight:700}
   <div class="wrap stack" style="margin-top:0;padding-top:16px">
     <div id="photos"></div>
     <div class="more" id="more"></div>
+    <div id="gcse" aria-hidden="true"></div>
   </div>
   <div class="wrap sticky"><button class="btn done" id="done" type="button">✓ 확인 완료</button></div>
 </div>
 <div class="toast" id="toast" role="status"></div>
+<div class="lb" id="lb" hidden><img id="lbimg" alt="부품 사진 크게 보기"><div class="bar"><a class="btn open" id="lbopen" href="#" target="_blank" rel="noopener">원본 페이지</a><button class="btn close" id="lbclose" type="button">닫기</button></div></div>
 
 <script>
-/* ===== 설정: Google 이미지 검색 API (비워 두면 검색 시 구글 이미지가 열립니다) ===== */
-var CONFIG = {
-  key: "AIzaSyAxwXE0qOibOmoB1gL_0pHnYqlZZyJMWCQ",   // Google Cloud API Key
-  cx:  "028fe892660194d1a"                            // Programmable Search Engine ID
+/* ===== 설정 ===== */
+var CSE_ID = "028fe892660194d1a";   // Google 프로그래밍 검색엔진 ID (검색할 사이트 목록은 검색엔진 설정에서 관리)
+var pending=null, cseReady=false, cseFailed=false, renderFn=null;
+function cseInit(){
+    if(cseReady||cseFailed) return;
+    try{
+      google.search.cse.element.render({div:'gcse', tag:'searchresults-only', gname:'cts',
+        attributes:{enableImageSearch:true, defaultToImageSearch:true, disableWebSearch:true, imageSearchLayout:'classic', imageSearchResultSetSize:'large', linkTarget:'_blank'}});
+      cseReady=true;
+      if(pending){ var q=pending; pending=null; runQuery(q) }
+    }catch(e){ cseFailed=true; if(pending && renderFn){ renderFn.fail(pending) } }
+}
+window.__gcse = {
+  parsetags: 'explicit',
+  callback: cseInit,
+  initializationCallback: cseInit,
+  searchCallbacks:{ image:{ ready:function(gname,query,promos,results,div){ if(renderFn) renderFn.ok(results||[]); return true } } }
 };
+function runQuery(q){ try{ var el=google.search.cse.element.getElement('cts'); if(el){ el.execute('GM '+q); return } }catch(e){} cseFailed=true; if(renderFn) renderFn.fail(q) }
 (function(){
   var $=function(id){return document.getElementById(id)};
   var home=$('home'),result=$('result'),pn=$('pn'),go=$('go'),clear=$('clear'),rpn=$('rpn'),photos=$('photos'),more=$('more');
-  var recentcard=$('recentcard'),recent=$('recent'),toast=$('toast');
+  var recentcard=$('recentcard'),recent=$('recent'),toast=$('toast'),lb=$('lb'),lbimg=$('lbimg'),lbopen=$('lbopen');
   $('yr').textContent=new Date().getFullYear();
+  var current='';
 
   function norm(v){ v=(v||'').toUpperCase().replace(/[\s\-\.]/g,''); if(/^P\d/.test(v)) v=v.slice(1); return v; }
   function store(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)) }catch(e){} }
   function load(k,d){ try{ var s=localStorage.getItem(k); return s?JSON.parse(s):d }catch(e){ return d } }
   function showToast(t){ toast.textContent=t; toast.classList.add('on'); clearTimeout(showToast.t); showToast.t=setTimeout(function(){toast.classList.remove('on')},2200) }
-  function gUrl(q){ return 'https://www.google.com/search?tbm=isch&q='+encodeURIComponent('GM '+q+' part') }
-  function nUrl(q){ return 'https://search.naver.com/search.naver?where=image&query='+encodeURIComponent('GM '+q) }
+  function gUrl(q){ return 'https://www.google.com/search?tbm=isch&q='+encodeURIComponent('GM '+q) }
   function link(cls,txt,href){ var a=document.createElement('a'); a.className='btn '+cls; a.href=href; a.target='_blank'; a.rel='noopener'; a.textContent=txt; return a }
+  function state(html){ var d=document.createElement('div'); d.className='state'; d.innerHTML=html; return d }
+  function host(u){ try{ return new URL(u).hostname.replace(/^www\./,'') }catch(e){ return '' } }
 
   function renderRecent(){
     var list=load('cts_recent',[]); recent.innerHTML='';
@@ -181,44 +209,51 @@ var CONFIG = {
     var x=document.createElement('button'); x.className='chip x'; x.type='button'; x.textContent='기록 지우기'; x.onclick=function(){ store('cts_recent',[]); renderRecent() }; recent.appendChild(x);
   }
 
-  function goHome(){ result.hidden=true; home.hidden=false; pn.value=''; clear.classList.remove('on'); window.scrollTo(0,0) }
+  function goHome(){ result.hidden=true; home.hidden=false; pn.value=''; clear.classList.remove('on'); current=''; window.scrollTo(0,0) }
+
+  function showPhotos(results){
+    photos.innerHTML=''; more.innerHTML='';
+    var items=results.filter(function(r){ return r && (r.thumbnailImage||r.image) });
+    if(!items.length){ photos.appendChild(state('이 부품번호로 등록된 사진을 찾지 못했습니다.<br>구글 이미지에서 한 번 더 찾아보세요.')); more.appendChild(link('','🖼 구글 이미지에서 찾기',gUrl(current))); return }
+    var g=document.createElement('div'); g.className='grid';
+    items.slice(0,20).forEach(function(r){
+      var thumb=(r.thumbnailImage&&r.thumbnailImage.url)||(r.image&&r.image.url), full=(r.image&&r.image.url)||thumb, page=r.contextUrl||r.url||full;
+      var b=document.createElement('button'); b.className='tile'; b.type='button';
+      var im=document.createElement('img'); im.src=thumb; im.alt=r.title||current; im.referrerPolicy='no-referrer'; im.loading='lazy'; im.onerror=function(){ b.remove() };
+      var s=document.createElement('span'); s.className='src'; s.textContent=host(page);
+      b.appendChild(im); b.appendChild(s);
+      b.onclick=function(){ openLb(full,thumb,page) };
+      g.appendChild(b);
+    });
+    photos.appendChild(g);
+    var c=document.createElement('p'); c.className='credit'; c.textContent='사진을 누르면 크게 보입니다 · Google 검색 결과'; photos.appendChild(c);
+    more.appendChild(link('ghost','구글 이미지에서 더 보기',gUrl(current)));
+  }
+  function showFail(q){
+    photos.innerHTML=''; more.innerHTML='';
+    photos.appendChild(state('사진 검색 서비스에 연결하지 못했습니다.<br>아래 버튼으로 구글 이미지에서 보세요.'));
+    more.appendChild(link('','🖼 구글 이미지에서 보기',gUrl(q)));
+  }
+  renderFn={ ok:showPhotos, fail:showFail };
+
+  function openLb(full,thumb,page){
+    lbimg.src=full; lbimg.onerror=function(){ lbimg.onerror=null; lbimg.src=thumb };
+    lbopen.href=page; lb.hidden=false; document.body.style.overflow='hidden';
+  }
+  function closeLb(){ lb.hidden=true; lbimg.src=''; document.body.style.overflow='' }
+  $('lbclose').addEventListener('click',closeLb);
+  lbimg.addEventListener('click',closeLb);
 
   function search(){
     var q=norm(pn.value);
     if(!q){ pn.focus(); showToast('부품번호를 입력해 주세요'); return }
-    pn.value=q; pn.blur();
+    pn.value=q; pn.blur(); current=q;
     var list=load('cts_recent',[]).filter(function(x){return x!==q}); list.unshift(q); store('cts_recent',list.slice(0,12)); renderRecent();
-    rpn.textContent=q; photos.innerHTML=''; more.innerHTML='';
+    rpn.textContent=q; more.innerHTML='';
+    photos.innerHTML=''; photos.appendChild(state('<div class="spin"></div><div>사진을 찾는 중입니다</div>'));
     home.hidden=true; result.hidden=false; window.scrollTo(0,0);
-    if(CONFIG.key && CONFIG.cx){ fetchPhotos(q,CONFIG) } else { openGoogle(q) }
-  }
-
-  function openGoogle(q){
-    var w=null; try{ w=window.open(gUrl(q),'_blank') }catch(e){}
-    var st=document.createElement('div'); st.className='state';
-    st.innerHTML=w?'<div>구글 이미지에서 사진을 열었습니다.<br>다 보셨으면 아래 확인 완료를 눌러 주세요.</div>':'<div>아래 버튼을 누르면 사진이 열립니다.</div>';
-    photos.appendChild(st);
-    more.appendChild(link('',w?'🖼 사진 다시 열기':'🖼 사진 보기',gUrl(q)));
-    more.appendChild(link('ghost','네이버에서도 보기',nUrl(q)));
-  }
-
-  function fetchPhotos(q,cfg){
-    var st=document.createElement('div'); st.className='state'; st.innerHTML='<div class="spin"></div><div>사진을 찾는 중입니다</div>'; photos.appendChild(st);
-    var url='https://www.googleapis.com/customsearch/v1?key='+encodeURIComponent(cfg.key)+'&cx='+encodeURIComponent(cfg.cx)+'&searchType=image&num=10&q='+encodeURIComponent('GM '+q);
-    fetch(url).then(function(r){return r.json()}).then(function(d){
-      photos.innerHTML='';
-      var items=(d&&d.items)||[];
-      if(!items.length){ var e=document.createElement('div'); e.className='state'; e.textContent=(d&&d.error)?('연결 오류: '+(d.error.message||d.error.status||d.error.code)+' / 구글 이미지로 보여드립니다.'):'사진을 찾지 못했습니다. 구글 이미지로 보여드립니다.'; photos.appendChild(e); more.appendChild(link('','🖼 구글 이미지에서 보기',gUrl(q))); return }
-      var g=document.createElement('div'); g.className='grid';
-      items.forEach(function(it){
-        var a=document.createElement('a'); a.className='tile'; a.href=it.link; a.target='_blank'; a.rel='noopener';
-        var im=document.createElement('img'); im.src=(it.image&&it.image.thumbnailLink)||it.link; im.alt=it.title||q; im.referrerPolicy='no-referrer'; im.loading='lazy';
-        im.onerror=function(){ a.remove() };
-        a.appendChild(im); g.appendChild(a);
-      });
-      photos.appendChild(g);
-      more.appendChild(link('ghost','사진 더 보기 (구글 이미지)',gUrl(q)));
-    }).catch(function(){ photos.innerHTML=''; openGoogle(q) });
+    if(cseFailed){ showFail(q); return }
+    if(cseReady){ runQuery(q) } else { pending=q; setTimeout(function(){ if(pending===q){ pending=null; showFail(q) } },8000) }
   }
 
   go.addEventListener('click',search);
@@ -230,6 +265,7 @@ var CONFIG = {
   renderRecent();
 })();
 </script>
+<script async src="https://cse.google.com/cse.js?cx=028fe892660194d1a" onerror="cseFailed=true;if(pending&&renderFn){var q=pending;pending=null;renderFn.fail(q)}"></script>
 
 <script>if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").catch(function(){});}</script>
 </body>
